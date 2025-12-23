@@ -199,7 +199,14 @@ app.get("/api/results", async (req, res) => {
   });
 });
 
+// ===== LISTAR PARTICIPANTES =====
+app.get("/api/participants", async (req, res) => {
+  const list = await get(ParticipantDB, participants);
+  res.json(list);
+});
+
 // ===== START =====
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
+
