@@ -1,11 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const { sendSurveyEmail } = require("./mailer");
+const { sendSurveyEmail } = require("./mailer"); // tu módulo de correo
 
 const app = express();
-
-// 🔹 PORT dinámico para Render
 const PORT = process.env.PORT || 3000;
 
 // ===== MIDDLEWARE =====
@@ -21,18 +19,15 @@ let votes = [];
 // ===== MONGODB =====
 let dbConnected = false;
 
-// Cambia la URI aquí si quieres usar Atlas
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/encuestaRD";
-
 mongoose
-  .connect(MONGO_URI)
+  .connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/encuestaRD")
   .then(() => {
     console.log("🟢 MongoDB conectado");
     dbConnected = true;
   })
   .catch(err => {
     console.log("🟡 MongoDB NO conectado → usando memoria");
-    console.error(err.message);
+    console.error(err);
   });
 
 // ===== ESQUEMAS =====
@@ -80,7 +75,8 @@ const remove = async (Model, mem, filter) => {
   }
 };
 
-// ===== PARTICIPANTES =====
+// ================= PARTICIPANTES =================
+// Agregar participante
 app.post("/api/participants", async (req, res) => {
   const { email, nombre, apellido, campo1, campo2, campo3 } = req.body;
   if (!email) return res.status(400).json({ error: "Correo requerido" });
@@ -105,14 +101,34 @@ app.post("/api/participants", async (req, res) => {
 
   try {
     await sendSurveyEmail(emailLower);
-  } catch {
-    console.warn("⚠️ No se pudo enviar correo");
+  } catch (err) {
+    console.error("⚠️ No se pudo enviar correo:", err.message);
   }
 
   res.json(participant);
 });
 
-// ===== VALIDAR LINK =====
+// Obtener todos los participantes
+app.get("/api/participants", async (req, res) => {
+  try {
+    const list = await get(ParticipantDB, participants);
+    res.json(list);
+  } catch {
+    res.status(500).json({ error: "No se pudo obtener participantes" });
+  }
+});
+
+// Borrar participante
+app.delete("/api/participants/:email", async (req, res) => {
+  try {
+    await remove(ParticipantDB, participants, { email: req.params.email.toLowerCase() });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "No se pudo borrar participante" });
+  }
+});
+
+// ================= VALIDAR LINK =================
 app.post("/api/validate", async (req, res) => {
   const { email } = req.body;
   const list = await get(ParticipantDB, participants);
@@ -122,10 +138,8 @@ app.post("/api/validate", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ===== PREGUNTAS (POSITIONS) =====
-app.get("/api/positions", async (req, res) => {
-  res.json(await get(PositionDB, positions));
-});
+// ================= POSITIONS =================
+app.get("/api/positions", async (req, res) => res.json(await get(PositionDB, positions)));
 
 app.post("/api/positions", async (req, res) => {
   if (!req.body.nombre) return res.status(400).json({ error: "Nombre requerido" });
@@ -146,10 +160,8 @@ app.delete("/api/positions/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ===== OPCIONES (CANDIDATES) =====
-app.get("/api/candidates", async (req, res) => {
-  res.json(await get(CandidateDB, candidates));
-});
+// ================= CANDIDATES =================
+app.get("/api/candidates", async (req, res) => res.json(await get(CandidateDB, candidates)));
 
 app.post("/api/candidates", async (req, res) => {
   if (!req.body.positionId || !req.body.nombre)
@@ -170,7 +182,7 @@ app.delete("/api/candidates/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ===== VOTAR =====
+// ================= VOTAR =================
 app.post("/api/vote", async (req, res) => {
   const { email, selections } = req.body;
   const list = await get(ParticipantDB, participants);
@@ -190,7 +202,7 @@ app.post("/api/vote", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ===== RESULTADOS =====
+// ================= RESULTADOS =================
 app.get("/api/results", async (req, res) => {
   res.json({
     participants: await get(ParticipantDB, participants),
@@ -200,7 +212,14 @@ app.get("/api/results", async (req, res) => {
   });
 });
 
-// ===== START =====
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+// ================= RESET (BORRAR TODO) =================
+app.post("/api/reset", async (req, res) => {
+  await remove(ParticipantDB, participants, {});
+  await remove(PositionDB, positions, {});
+  await remove(CandidateDB, candidates, {});
+  await remove(VoteDB, votes, {});
+  res.json({ ok: true });
 });
+
+// ================= START SERVER =================
+app.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));
