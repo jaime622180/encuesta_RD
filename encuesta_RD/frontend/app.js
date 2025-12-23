@@ -121,15 +121,16 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.getElementById("participants-form")?.addEventListener("submit", async e => {
     e.preventDefault();
 
-    const participant = {
-      email: participantEmail.value.trim().toLowerCase(),
-      nombre: participantNombre.value.trim(),
-      apellido: participantApellido.value.trim(),
-      campo1: participantCampo1.value.trim(),
-      campo2: participantCampo2.value.trim(),
-      campo3: participantCampo3.value.trim(),
-      hasVoted: false
-    };
+ const participant = {
+  email: document.getElementById("participant-email").value.trim().toLowerCase(),
+  nombre: document.getElementById("participant-nombre").value.trim(),
+  apellido: document.getElementById("participant-apellido").value.trim(),
+  campo1: document.getElementById("participant-campo1").value.trim(),
+  campo2: document.getElementById("participant-campo2").value.trim(),
+  campo3: document.getElementById("participant-campo3").value.trim(),
+  hasVoted: false
+};
+
 
     const res = await fetch(`${API_BASE}/participants`, {
       method: "POST",
@@ -177,9 +178,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     e.preventDefault();
 
     const data = {
-      nombre: questionText.value.trim(),
-      descripcion: questionDescription.value.trim()
-    };
+  nombre: document.getElementById("question-text").value.trim(),
+  descripcion: document.getElementById("question-description").value.trim()
+};
+
 
     const res = await fetch(`${API_BASE}/positions`, {
       method: "POST",
@@ -323,3 +325,4 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ================= INIT =================
   await initData();
 });
+
