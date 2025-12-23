@@ -10,32 +10,14 @@ document.addEventListener("DOMContentLoaded", async function () {
   let votes = [];
   let currentParticipantEmail = null;
 
-  // ================= INPUTS =================
-  const participantEmail = document.getElementById("participant-email");
-  const participantNombre = document.getElementById("participant-nombre");
-  const participantApellido = document.getElementById("participant-apellido");
-  const participantCampo1 = document.getElementById("participant-campo1");
-  const participantCampo2 = document.getElementById("participant-campo2");
-  const participantCampo3 = document.getElementById("participant-campo3");
-
-  const questionText = document.getElementById("question-text");
-  const questionDescription = document.getElementById("question-description");
-
-  const optionQuestionSelect = document.getElementById("option-question-select");
-  const optionText = document.getElementById("option-text");
-
-  const voteEmailInput = document.getElementById("vote-email-input");
-  const voteEmailError = document.getElementById("vote-email-error");
-  const voteStepEmail = document.getElementById("vote-step-email");
-  const voteStepForm = document.getElementById("vote-step-form");
-  const voteStepDone = document.getElementById("vote-step-done");
-  const voteParticipantLabel = document.getElementById("vote-participant-label");
-  const voteQuestionsContainer = document.getElementById("vote-questions-container");
-
   // ================= AUTOCOMPLETAR CORREO DESDE LINK =================
   const params = new URLSearchParams(window.location.search);
   const emailFromLink = params.get("email");
-  if (emailFromLink && voteEmailInput) voteEmailInput.value = emailFromLink;
+
+  if (emailFromLink) {
+    const emailInput = document.getElementById("vote-email-input");
+    if (emailInput) emailInput.value = emailFromLink;
+  }
 
   // ================= VIEWS NAV =================
   const navButtons = document.querySelectorAll(".nav-btn");
@@ -135,16 +117,17 @@ document.addEventListener("DOMContentLoaded", async function () {
       participants.filter(p => p.hasVoted).length;
   }
 
+  // ================= PARTICIPANTS FORM =================
   document.getElementById("participants-form")?.addEventListener("submit", async e => {
     e.preventDefault();
 
     const participant = {
-      email: participantEmail.value.trim().toLowerCase(),
-      nombre: participantNombre.value.trim(),
-      apellido: participantApellido.value.trim(),
-      campo1: participantCampo1.value.trim(),
-      campo2: participantCampo2.value.trim(),
-      campo3: participantCampo3.value.trim(),
+      email: document.getElementById("participant-email").value.trim().toLowerCase(),
+      nombre: document.getElementById("participant-nombre").value.trim(),
+      apellido: document.getElementById("participant-apellido").value.trim(),
+      campo1: document.getElementById("participant-campo1").value.trim(),
+      campo2: document.getElementById("participant-campo2").value.trim(),
+      campo3: document.getElementById("participant-campo3").value.trim(),
       hasVoted: false
     };
 
@@ -155,8 +138,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return alert(err.error || "Error registrando participante");
+      const data = await res.json();
+      return alert(data.error || "Error registrando participante");
     }
 
     participants.push(await res.json());
@@ -186,17 +169,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function renderPositionsSelect() {
-    if (!optionQuestionSelect) return;
-    optionQuestionSelect.innerHTML = `<option value="">Seleccione una pregunta...</option>` +
+    const select = document.getElementById("option-question-select");
+    if (!select) return;
+
+    select.innerHTML = `<option value="">Seleccione una pregunta...</option>` +
       positions.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
   }
 
+  // ================= POSITIONS FORM =================
   document.getElementById("questions-form")?.addEventListener("submit", async e => {
     e.preventDefault();
 
     const data = {
-      nombre: questionText.value.trim(),
-      descripcion: questionDescription.value.trim()
+      nombre: document.getElementById("question-text").value.trim(),
+      descripcion: document.getElementById("question-description").value.trim()
     };
 
     const res = await fetch(`${API_BASE}/positions`, {
@@ -206,8 +192,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return alert(err.error || "Error creando pregunta");
+      const d = await res.json();
+      return alert(d.error || "Error creando pregunta");
     }
 
     positions.push(await res.json());
@@ -236,8 +222,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     e.preventDefault();
 
     const data = {
-      positionId: optionQuestionSelect.value,
-      nombre: optionText.value.trim()
+      positionId: document.getElementById("option-question-select").value,
+      nombre: document.getElementById("option-text").value.trim()
     };
 
     const res = await fetch(`${API_BASE}/candidates`, {
@@ -247,8 +233,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return alert(err.error || "Error creando opción");
+      const d = await res.json();
+      return alert(d.error || "Error creando opción");
     }
 
     candidates.push(await res.json());
@@ -261,21 +247,22 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.getElementById("vote-email-form")?.addEventListener("submit", e => {
     e.preventDefault();
 
-    const email = voteEmailInput.value.trim().toLowerCase();
+    const email = document.getElementById("vote-email-input").value.trim().toLowerCase();
     const participant = participants.find(p => p.email === email);
 
     if (!participant) return showVoteError("Correo no registrado");
     if (participant.hasVoted) return showVoteError("Este correo ya votó");
 
     currentParticipantEmail = email;
-    voteStepEmail.style.display = "none";
-    voteStepForm.style.display = "block";
-    voteParticipantLabel.textContent = email;
+    document.getElementById("vote-step-email").style.display = "none";
+    document.getElementById("vote-step-form").style.display = "block";
+    document.getElementById("vote-participant-label").textContent = email;
     renderVoteForm();
   });
 
   function renderVoteForm() {
-    voteQuestionsContainer.innerHTML = positions.map(pos => {
+    const container = document.getElementById("vote-questions-container");
+    container.innerHTML = positions.map(pos => {
       const opts = [
         ...candidates.filter(c => c.positionId === pos.id),
         { id: `none-${pos.id}`, nombre: "Ninguno" },
@@ -316,8 +303,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (p) p.hasVoted = true;
 
     updateSummaryCounts();
-    voteStepForm.style.display = "none";
-    voteStepDone.style.display = "block";
+    document.getElementById("vote-step-form").style.display = "none";
+    document.getElementById("vote-step-done").style.display = "block";
   });
 
   // ================= RESULTS =================
@@ -340,8 +327,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function showVoteError(msg) {
-    voteEmailError.textContent = msg;
-    voteEmailError.style.display = "block";
+    const errorDiv = document.getElementById("vote-email-error");
+    if (errorDiv) {
+      errorDiv.textContent = msg;
+      errorDiv.style.display = "block";
+    }
   }
 
   // ================= INIT =================
