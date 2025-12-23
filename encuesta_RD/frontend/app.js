@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ================= AUTOCOMPLETAR CORREO DESDE LINK =================
   const params = new URLSearchParams(window.location.search);
   const emailFromLink = params.get("email");
-
   if (emailFromLink) {
     const emailInput = document.getElementById("vote-email-input");
     if (emailInput) emailInput.value = emailFromLink;
@@ -107,27 +106,31 @@ document.addEventListener("DOMContentLoaded", async function () {
         <td>${p.campo2 || ""}</td>
         <td>${p.campo3 || ""}</td>
         <td>${p.hasVoted ? "Sí" : "No"}</td>
-        <td><button class="delete-btn" data-email="${p.email}">Eliminar</button></td>
+        <td>
+          <button class="delete-participant-btn" data-email="${p.email}">Borrar</button>
+        </td>
       </tr>
     `).join("");
 
-    // ================= ELIMINAR PARTICIPANTE =================
-    document.querySelectorAll(".delete-btn").forEach(btn =>
+    // Borrar participante
+    document.querySelectorAll(".delete-participant-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
         const email = btn.dataset.email;
-        await fetch(`${API_BASE}/participants/${email}`, { method: "DELETE" });
-        await loadParticipants();
-        renderParticipantsTable();
-        updateSummaryCounts();
-      })
-    );
+        const res = await fetch(`${API_BASE}/participants/${encodeURIComponent(email)}`, { method: "DELETE" });
+        if (res.ok) {
+          participants = participants.filter(p => p.email !== email);
+          renderParticipantsTable();
+          updateSummaryCounts();
+        } else alert("Error borrando participante");
+      });
+    });
   }
 
   function updateSummaryCounts() {
-    const totalElem = document.getElementById("summary-total-participants");
-    const votedElem = document.getElementById("summary-total-voted");
-    if (totalElem) totalElem.textContent = participants.length;
-    if (votedElem) votedElem.textContent = participants.filter(p => p.hasVoted).length;
+    const totalEl = document.getElementById("summary-total-participants");
+    const votedEl = document.getElementById("summary-total-voted");
+    if (totalEl) totalEl.textContent = participants.length;
+    if (votedEl) votedEl.textContent = participants.filter(p => p.hasVoted).length;
   }
 
   // ================= PARTICIPANTS FORM =================
@@ -167,7 +170,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!tbody) return;
 
     if (positions.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="2">No hay preguntas registradas.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3">No hay preguntas registradas.</td></tr>`;
       return;
     }
 
@@ -175,10 +178,25 @@ document.addEventListener("DOMContentLoaded", async function () {
       <tr>
         <td>${p.nombre}</td>
         <td>${p.descripcion || ""}</td>
+        <td><button class="delete-position-btn" data-id="${p.id}">Borrar</button></td>
       </tr>
     `).join("");
 
     renderPositionsSelect();
+
+    // Borrar posición
+    document.querySelectorAll(".delete-position-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const res = await fetch(`${API_BASE}/positions/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          positions = positions.filter(p => p.id !== id);
+          candidates = candidates.filter(c => c.positionId !== id);
+          renderPositionsTable();
+          renderCandidatesTable();
+        } else alert("Error borrando pregunta");
+      });
+    });
   }
 
   function renderPositionsSelect() {
@@ -189,7 +207,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       positions.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
   }
 
-  // ================= POSITIONS FORM =================
   document.getElementById("questions-form")?.addEventListener("submit", async e => {
     e.preventDefault();
 
@@ -221,14 +238,30 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!tbody) return;
 
     if (candidates.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="2">No hay opciones registradas.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3">No hay opciones registradas.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = candidates.map(c => {
       const pos = positions.find(p => p.id === c.positionId);
-      return `<tr><td>${pos?.nombre || ""}</td><td>${c.nombre}</td></tr>`;
+      return `<tr>
+        <td>${pos?.nombre || ""}</td>
+        <td>${c.nombre}</td>
+        <td><button class="delete-candidate-btn" data-id="${c.id}">Borrar</button></td>
+      </tr>`;
     }).join("");
+
+    // Borrar candidato
+    document.querySelectorAll(".delete-candidate-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const res = await fetch(`${API_BASE}/candidates/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          candidates = candidates.filter(c => c.id !== id);
+          renderCandidatesTable();
+        } else alert("Error borrando opción");
+      });
+    });
   }
 
   document.getElementById("options-form")?.addEventListener("submit", async e => {
