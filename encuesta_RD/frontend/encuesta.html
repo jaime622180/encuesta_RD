@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Encuesta</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .vote-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+    .radio-option { display: block; margin: 5px 0; }
+    .alert { padding: 10px; background-color: #f9d6d5; color: #a33; border-radius: 5px; margin-bottom: 10px; }
+    .success { background-color: #d5f9d6; color: #2a7; }
+    button { padding: 10px 20px; border: none; background-color: #4CAF50; color: white; border-radius: 5px; cursor: pointer; }
+    button:disabled { background-color: #aaa; cursor: default; }
+  </style>
+</head>
+<body>
+  <h1>Encuesta</h1>
+
+  <!-- Paso 1: ingreso de correo -->
+  <div id="step-email">
+    <p>Introduce tu correo para participar:</p>
+    <form id="email-form">
+      <input type="email" id="email-input" placeholder="correo@ejemplo.com" required />
+      <button type="submit">Continuar</button>
+    </form>
+    <div id="email-error" class="alert" style="display:none;"></div>
+  </div>
+
+  <!-- Paso 2: votación -->
+  <div id="step-vote" style="display:none;">
+    <p>Hola <span id="participant-label"></span>, selecciona una opción para cada pregunta:</p>
+    <form id="vote-form">
+      <div id="questions-container"></div>
+      <button type="submit">Enviar voto</button>
+    </form>
+  </div>
+
+  <!-- Paso 3: confirmación -->
+  <div id="step-done" style="display:none;">
+    <p class="success">¡Gracias! Tu voto ha sido registrado correctamente.</p>
+  </div>

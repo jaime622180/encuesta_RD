@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Administrador Encuesta</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    h2 { margin-top: 30px; }
+    input, button { padding: 6px; margin: 4px; }
+    .box { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; }
+    .danger { color: red; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<h1>Panel Administrador</h1>
+
+<!-- CREAR PREGUNTA -->
+<h2>Crear Pregunta</h2>
+<input id="posName" placeholder="Pregunta">
+<input id="posDesc" placeholder="Descripción (opcional)">
+<button onclick="addPosition()">Agregar</button>
+
+<!-- CREAR OPCIÓN -->
+<h2>Agregar Opción</h2>
+<select id="posSelect"></select>
+<input id="candName" placeholder="Opción">
+<button onclick="addCandidate()">Agregar</button>
+
+<hr>
+
+<h2>Preguntas y Opciones</h2>
+<div id="list"></div>
+
+<script>
+const API = "http://localhost:3000/api";
+
+async function loadAll() {
+  const positions = await fetch(API + "/positions").then(r => r.json());
+  const candidates = await fetch(API + "/candidates").then(r => r.json());
+
+  const select = document.getElementById("posSelect");
+  const list = document.getElementById("list");
+
+  select.innerHTML = "";
+  list.innerHTML = "";
+
+  positions.forEach(p => {
+    select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+
+    const div = document.createElement("div");
+    div.className = "box";
+    div.innerHTML = `
+      <b>${p.nombre}</b>
+      <span class="danger" onclick="deletePosition('${p.id}')">[ borrar ]</span>
+      <p>${p.descripcion || ""}</p>
+      <ul>
+        ${candidates
+          .filter(c => c.positionId === p.id)
+          .map(c => `
+            <li>
+              ${c.nombre}
+              <span class="danger" onclick="deleteCandidate('${c.id}')">[x]</span>
+            </li>
+          `).join("")}
+      </ul>
+    `;
+    list.appendChild(div);
+  });
+}
+
+async function addPosition() {
+  const nombre = posName.value;
+  if (!nombre) return alert("Escribe la pregunta");
+
+  await fetch(API + "/positions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nombre,
+      descripcion: posDesc.value
+    })
+  });
+
+  posName.value = "";
+  posDesc.value = "";
+  loadAll();
+}
+
+async function addCandidate() {
+  const nombre = candName.value;
+  const positionId = posSelect.value;
+  if (!nombre) return alert("Escribe la opción");
+
+  await fetch(API + "/candidates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre, positionId })
+  });
+
+  candName.value = "";
+  loadAll();
+}
+
+async function deletePosition(id) {
+  if (!confirm("¿Borrar pregunta y opciones?")) return;
+  await fetch(API + "/positions/" + id, { method: "DELETE" });
+  loadAll();
+}
+
+async function deleteCandidate(id) {
+  await fetch(API + "/candidates/" + id, { method: "DELETE" });
+  loadAll();
+}
+
+loadAll();
+</script>
+
+</body>
+</html>

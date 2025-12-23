@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Encuesta RD - Proyecto Final</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="header-top">
+          <h1>Encuesta RD </h1>
+          <button
+            type="button"
+            class="theme-toggle"
+            aria-label="Cambiar tema"
+          >
+            🌙
+          </button>
+        </div>
+        <p class="subtitle">
+          Proyecto Final — Registro de participantes, preguntas, opciones y reporte
+        </p>
+      </header>
+
+<nav class="app-nav">
+        <button class="nav-btn active" data-view="admin">
+          Administración
+        </button>
+        <button class="nav-btn" data-view="vote">
+          Encuesta
+        </button>
+        <button class="nav-btn" data-view="results">
+          Resultados
+        </button>
+      </nav>
+
+
+      <main class="app-main">
+        <!-- ================== ADMIN VIEW ================== -->
+        <section id="view-admin" class="view-section">
+          <div class="admin-grid">
+            <!-- Columna izquierda: configuración -->
+            <div class="card">
+              <h2>Configuración de la encuesta</h2>
+              <small>
+                Primero registra los participantes, luego las
+                <strong>preguntas</strong> y finalmente las
+                <strong>opciones</strong> que podrán elegir.
+              </small>
+
+              <!-- PARTICIPANTES -->
+              <section style="margin-top: 12px">
+                <h3>1. Registro de participantes</h3>
+                <small>
+                  Cada correo podrá responder la encuesta solo una vez.
+                </small>
+
+                <form id="participants-form" style="margin-top: 8px">
+                  <!-- FILA 1: Correo -->
+                  <div class="form-row">
+                    <label>
+                      Correo electrónico
+                      <input
+                        id="participant-email"
+                        type="email"
+                        required
+                        placeholder="tucorreo@ejemplo.com"
+                      />
+                    </label>
+                  </div>
+
+                  <!-- FILA 2: Nombre y Apellido -->
+                  <div class="form-row">
+                    <label>
+                      Nombre
+                      <input
+                        id="participant-nombre"
+                        type="text"
+                        placeholder="Ej: Juan"
+                      />
+                    </label>
+
+                    <label>
+                      Apellido
+                      <input
+                        id="participant-apellido"
+                        type="text"
+                        placeholder="Ej: Pérez"
+                      />
+                    </label>
+                  </div>
+
+                  <!-- FILA 3: Campo 1 y Campo 2 -->
+                  <div class="form-row">
+                    <label>
+                      Campo 1 (opcional)
+                      <input
+                        id="participant-campo1"
+                        type="text"
+                        placeholder="Ej: Departamento / Sección"
+                      />
+                    </label>
+
+                    <label>
+                      Campo 2 (opcional)
+                      <input
+                        id="participant-campo2"
+                        type="text"
+                        placeholder="Ej: Grupo / Curso"
+                      />
+                    </label>
+                  </div>
+
+                  <!-- FILA 4: Campo 3 -->
+                  <div class="form-row">
+                    <label>
+                      Campo 3 (opcional)
+                      <input
+                        id="participant-campo3"
+                        type="text"
+                        placeholder="Ej: Observación"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="form-actions">
+                    <button class="btn-primary" type="submit">
+                      Agregar participante
+                    </button>
+                  </div>
+                </form>
+
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Correo</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Campo 1</th>
+                        <th>Campo 2</th>
+                        <th>Campo 3</th>
+                        <th>¿Respondió?</th>
+                      </tr>
+                    </thead>
+                    <tbody id="participants-table-body">
+                      <tr>
+                        <td colspan="7">No hay participantes registrados.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <!-- PREGUNTAS -->
+              <section style="margin-top: 16px">
+                <h3>2. Registro de preguntas de la encuesta</h3>
+                <small>
+                  Define las <strong>preguntas</strong> que verán los
+                  participantes. Ej: “¿Cuál es su opción preferida?”.
+                </small>
+
+                <form id="questions-form" style="margin-top: 8px">
+                  <div class="form-row">
+                    <label>
+                      Texto de la pregunta
+                      <input
+                        id="question-text"
+                        type="text"
+                        required
+                        placeholder="Ej: ¿Cuál es su opción preferida?"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="form-row">
+                    <label>
+                      Descripción o ayuda (opcional)
+                      <input
+                        id="question-description"
+                        type="text"
+                        placeholder="Ej: Seleccione solo una opción"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="form-actions">
+                    <button class="btn-primary" type="submit">
+                      Agregar pregunta
+                    </button>
+                  </div>
+                </form>
+
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Pregunta</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="questions-table-body">
+                      <tr>
+                        <td colspan="2">No hay preguntas registradas.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <!-- OPCIONES -->
+              <section style="margin-top: 16px">
+                <h3>3. Registro de opciones de respuesta</h3>
+                <small>
+                  Para cada <strong>pregunta</strong>, agrega las
+                  <strong>opciones</strong> que el usuario podrá elegir. El
+                  sistema añadirá automáticamente “Ninguno” y “No sé”.
+                </small>
+
+                <form id="options-form" style="margin-top: 8px">
+                  <div class="form-row">
+                    <label>
+                      Pregunta
+                      <select id="option-question-select" required>
+                        <option value="">Seleccione una pregunta...</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="form-row">
+                    <label>
+                      Texto de la opción
+                      <input
+                        id="option-text"
+                        type="text"
+                        required
+                        placeholder="Ej: Candidato A / Excelente / Opción 1"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="form-actions">
+                    <button class="btn-primary" type="submit">
+                      Agregar opción
+                    </button>
+                  </div>
+                </form>
+
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Pregunta</th>
+                        <th>Opción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="options-table-body">
+                      <tr>
+                        <td colspan="2">No hay opciones registradas.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <div class="form-actions" style="margin-top: 10px">
+                <button id="clear-all-btn" class="btn-outline" type="button">
+                  Borrar todos los datos (testing)
+                </button>
+              </div>
+            </div>
+
+            
+            <div class="card">
+              <h2>Enlace de la encuesta</h2>
+              <small>
+                Comparte este enlace con los participantes. Al entrar, deberán
+                colocar su correo para validar su participación y solo podrán
+                responder una vez.
+              </small>
+
+              <section style="margin-top: 10px">
+                <div class="form-row">
+                  <label>
+                    Link de la encuesta
+                    <input
+                      id="survey-link-input"
+                      type="text"
+                      readonly
+                      style="font-size: 0.78rem"
+                    />
+                  </label>
+                </div>
+                <div class="form-actions" style="justify-content: flex-start">
+                  <button id="copy-link-btn" class="btn-primary" type="button">
+                    Copiar enlace
+                  </button>
+                </div>
+
+                <div style="margin-top: 12px; font-size: 0.8rem">
+                  <div>
+                    Total participantes registrados:{" "}
+                    <strong id="summary-total-participants">0</strong>
+                  </div>
+                  <div>
+                    Han respondido la encuesta:{" "}
+                    <strong id="summary-total-voted">0</strong>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================== VOTE VIEW ================== -->
+        <section id="view-vote" class="view-section" style="display: none">
+          <div class="vote-layout">
+            <!--correo -->
+            <div id="vote-step-email">
+              <div class="alert info">
+                Bienvenido a la encuesta. Para continuar, ingresa tu correo
+                electrónico. El sistema validará que estés registrado y que solo
+                puedas responder una vez.
+              </div>
+
+              <form id="vote-email-form">
+                <div class="form-row">
+                  <label>
+                    Correo electrónico
+                    <input
+                      id="vote-email-input"
+                      type="email"
+                      required
+                      placeholder="tucorreo@ejemplo.com"
+                    />
+                  </label>
+                </div>
+                <div
+                  id="vote-email-error"
+                  class="alert error"
+                  style="display: none; margin-top: 6px"
+                ></div>
+                <div class="form-actions" style="margin-top: 8px">
+                  <button class="btn-primary" type="submit">
+                    Validar correo y continuar
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- formulario de preguntas -->
+            <div id="vote-step-form" style="display: none">
+              <div class="alert info">
+                Estás respondiendo como:{" "}
+                <strong id="vote-participant-label"></strong>
+              </div>
+
+              <form id="vote-form">
+                <div id="vote-questions-container"></div>
+
+                <div class="form-actions" style="margin-top: 12px">
+                  <button class="btn-primary" type="submit">
+                    Enviar respuestas
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- gracias -->
+            <div id="vote-step-done" style="display: none">
+              <div class="alert success">
+                ¡Gracias! Tu respuesta ha sido registrada correctamente.
+              </div>
+              <p style="font-size: 0.85rem; color: #6b7280">
+                Este correo ya no podrá utilizarse nuevamente para responder
+                esta encuesta, respetando la regla de una respuesta por
+                participante.
+              </p>
+            </div>
+          </div>
+        </section>
+
+       
+        <section id="view-results" class="view-section" style="display: none">
+          <div class="alert info">
+            Reporte general de resultados de la encuesta según las respuestas
+            registradas.
+          </div>
+
+          <div id="results-container"></div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <div class="app-footer-left">
+          <span class="app-footer-label">Plataforma de Encuestas</span>
+          <span class="app-footer-year">
+            © <span id="footer-year"></span>
+          </span>
+        </div>
+
+        <div class="app-footer-right">
+          <span>
+            Desarrollado por <strong>Oliver Cuello</strong>
+          </span>
+          <span class="app-footer-team">
+            Integrantes del equipo: ___________________________
+          </span>
+        </div>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
