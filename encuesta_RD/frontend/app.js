@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
 
   // ================= API =================
-  // 🔥 PRODUCCIÓN (Render)
   const API_BASE = "https://encuesta-rd-1.onrender.com/api";
 
   // ================= DATA =================
@@ -11,14 +10,32 @@ document.addEventListener("DOMContentLoaded", async function () {
   let votes = [];
   let currentParticipantEmail = null;
 
+  // ================= INPUTS =================
+  const participantEmail = document.getElementById("participant-email");
+  const participantNombre = document.getElementById("participant-nombre");
+  const participantApellido = document.getElementById("participant-apellido");
+  const participantCampo1 = document.getElementById("participant-campo1");
+  const participantCampo2 = document.getElementById("participant-campo2");
+  const participantCampo3 = document.getElementById("participant-campo3");
+
+  const questionText = document.getElementById("question-text");
+  const questionDescription = document.getElementById("question-description");
+
+  const optionQuestionSelect = document.getElementById("option-question-select");
+  const optionText = document.getElementById("option-text");
+
+  const voteEmailInput = document.getElementById("vote-email-input");
+  const voteEmailError = document.getElementById("vote-email-error");
+  const voteStepEmail = document.getElementById("vote-step-email");
+  const voteStepForm = document.getElementById("vote-step-form");
+  const voteStepDone = document.getElementById("vote-step-done");
+  const voteParticipantLabel = document.getElementById("vote-participant-label");
+  const voteQuestionsContainer = document.getElementById("vote-questions-container");
+
   // ================= AUTOCOMPLETAR CORREO DESDE LINK =================
   const params = new URLSearchParams(window.location.search);
   const emailFromLink = params.get("email");
-
-  if (emailFromLink) {
-    const emailInput = document.getElementById("vote-email-input");
-    if (emailInput) emailInput.value = emailFromLink;
-  }
+  if (emailFromLink && voteEmailInput) voteEmailInput.value = emailFromLink;
 
   // ================= VIEWS NAV =================
   const navButtons = document.querySelectorAll(".nav-btn");
@@ -121,16 +138,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.getElementById("participants-form")?.addEventListener("submit", async e => {
     e.preventDefault();
 
- const participant = {
-  email: document.getElementById("participant-email").value.trim().toLowerCase(),
-  nombre: document.getElementById("participant-nombre").value.trim(),
-  apellido: document.getElementById("participant-apellido").value.trim(),
-  campo1: document.getElementById("participant-campo1").value.trim(),
-  campo2: document.getElementById("participant-campo2").value.trim(),
-  campo3: document.getElementById("participant-campo3").value.trim(),
-  hasVoted: false
-};
-
+    const participant = {
+      email: participantEmail.value.trim().toLowerCase(),
+      nombre: participantNombre.value.trim(),
+      apellido: participantApellido.value.trim(),
+      campo1: participantCampo1.value.trim(),
+      campo2: participantCampo2.value.trim(),
+      campo3: participantCampo3.value.trim(),
+      hasVoted: false
+    };
 
     const res = await fetch(`${API_BASE}/participants`, {
       method: "POST",
@@ -138,7 +154,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       body: JSON.stringify(participant)
     });
 
-    if (!res.ok) return alert("Error registrando participante");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return alert(err.error || "Error registrando participante");
+    }
 
     participants.push(await res.json());
     renderParticipantsTable();
@@ -167,10 +186,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function renderPositionsSelect() {
-    const select = document.getElementById("option-question-select");
-    if (!select) return;
-
-    select.innerHTML = `<option value="">Seleccione una pregunta...</option>` +
+    if (!optionQuestionSelect) return;
+    optionQuestionSelect.innerHTML = `<option value="">Seleccione una pregunta...</option>` +
       positions.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
   }
 
@@ -178,10 +195,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     e.preventDefault();
 
     const data = {
-  nombre: document.getElementById("question-text").value.trim(),
-  descripcion: document.getElementById("question-description").value.trim()
-};
-
+      nombre: questionText.value.trim(),
+      descripcion: questionDescription.value.trim()
+    };
 
     const res = await fetch(`${API_BASE}/positions`, {
       method: "POST",
@@ -189,7 +205,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       body: JSON.stringify(data)
     });
 
-    if (!res.ok) return alert("Error creando pregunta");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return alert(err.error || "Error creando pregunta");
+    }
 
     positions.push(await res.json());
     renderPositionsTable();
@@ -227,7 +246,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       body: JSON.stringify(data)
     });
 
-    if (!res.ok) return alert("Error creando opción");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return alert(err.error || "Error creando opción");
+    }
 
     candidates.push(await res.json());
     renderCandidatesTable();
@@ -325,4 +347,3 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ================= INIT =================
   await initData();
 });
-
