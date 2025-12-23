@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const { sendSurveyEmail } = require("./mailer");
 
 const app = express();
+
+// 🔹 PORT dinámico para Render
 const PORT = process.env.PORT || 3000;
 
 // ===== MIDDLEWARE =====
@@ -19,21 +21,18 @@ let votes = [];
 // ===== MONGODB =====
 let dbConnected = false;
 
-// 🔹 URI dinámica (Render o local)
-const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/encuestaRD";
-
-console.log("MONGO_URI:", process.env.MONGO_URI ? "DETECTADA" : "LOCAL");
+// Cambia la URI aquí si quieres usar Atlas
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/encuestaRD";
 
 mongoose
   .connect(MONGO_URI)
   .then(() => {
-    console.log("🟢 MongoDB conectado correctamente");
+    console.log("🟢 MongoDB conectado");
     dbConnected = true;
   })
-  .catch((err) => {
+  .catch(err => {
     console.log("🟡 MongoDB NO conectado → usando memoria");
-    console.error("Detalle Mongo:", err.message);
+    console.error(err.message);
   });
 
 // ===== ESQUEMAS =====
@@ -71,21 +70,13 @@ const CandidateDB = mongoose.model("Candidate", CandidateSchema);
 const VoteDB = mongoose.model("Vote", VoteSchema);
 
 // ===== HELPERS =====
-const get = async (Model, mem) =>
-  dbConnected ? await Model.find() : mem;
-
-const create = async (Model, mem, obj) => {
-  if (dbConnected) return await Model.create(obj);
-  mem.push(obj);
-  return obj;
-};
-
+const get = async (Model, mem) => (dbConnected ? await Model.find() : mem);
+const create = async (Model, mem, obj) =>
+  dbConnected ? await Model.create(obj) : mem.push(obj);
 const remove = async (Model, mem, filter) => {
   if (dbConnected) return await Model.deleteMany(filter);
   for (let i = mem.length - 1; i >= 0; i--) {
-    if (Object.keys(filter).every((k) => mem[i][k] === filter[k])) {
-      mem.splice(i, 1);
-    }
+    if (Object.keys(filter).every(k => mem[i][k] === filter[k])) mem.splice(i, 1);
   }
 };
 
@@ -97,7 +88,7 @@ app.post("/api/participants", async (req, res) => {
   const emailLower = email.toLowerCase();
   const list = await get(ParticipantDB, participants);
 
-  if (list.some((p) => p.email === emailLower))
+  if (list.some(p => p.email === emailLower))
     return res.status(400).json({ error: "Correo ya registrado" });
 
   const participant = {
@@ -114,8 +105,8 @@ app.post("/api/participants", async (req, res) => {
 
   try {
     await sendSurveyEmail(emailLower);
-  } catch (err) {
-    console.log("⚠️ No se pudo enviar correo:", err.message);
+  } catch {
+    console.warn("⚠️ No se pudo enviar correo");
   }
 
   res.json(participant);
@@ -125,20 +116,19 @@ app.post("/api/participants", async (req, res) => {
 app.post("/api/validate", async (req, res) => {
   const { email } = req.body;
   const list = await get(ParticipantDB, participants);
-  const p = list.find((x) => x.email === email?.toLowerCase());
+  const p = list.find(x => x.email === email?.toLowerCase());
   if (!p) return res.json({ ok: false });
   if (p.hasVoted) return res.json({ ok: false, message: "Ya votaste" });
   res.json({ ok: true });
 });
 
-// ===== PREGUNTAS =====
+// ===== PREGUNTAS (POSITIONS) =====
 app.get("/api/positions", async (req, res) => {
   res.json(await get(PositionDB, positions));
 });
 
 app.post("/api/positions", async (req, res) => {
-  if (!req.body.nombre)
-    return res.status(400).json({ error: "Nombre requerido" });
+  if (!req.body.nombre) return res.status(400).json({ error: "Nombre requerido" });
 
   const position = {
     id: "pos-" + Date.now(),
@@ -150,7 +140,13 @@ app.post("/api/positions", async (req, res) => {
   res.json(position);
 });
 
-// ===== OPCIONES =====
+app.delete("/api/positions/:id", async (req, res) => {
+  await remove(PositionDB, positions, { id: req.params.id });
+  await remove(CandidateDB, candidates, { positionId: req.params.id });
+  res.json({ ok: true });
+});
+
+// ===== OPCIONES (CANDIDATES) =====
 app.get("/api/candidates", async (req, res) => {
   res.json(await get(CandidateDB, candidates));
 });
@@ -169,11 +165,16 @@ app.post("/api/candidates", async (req, res) => {
   res.json(candidate);
 });
 
+app.delete("/api/candidates/:id", async (req, res) => {
+  await remove(CandidateDB, candidates, { id: req.params.id });
+  res.json({ ok: true });
+});
+
 // ===== VOTAR =====
 app.post("/api/vote", async (req, res) => {
   const { email, selections } = req.body;
   const list = await get(ParticipantDB, participants);
-  const p = list.find((x) => x.email === email?.toLowerCase());
+  const p = list.find(x => x.email === email?.toLowerCase());
 
   if (!p) return res.status(400).json({ error: "No válido" });
   if (p.hasVoted) return res.status(400).json({ error: "Ya votó" });
@@ -199,14 +200,7 @@ app.get("/api/results", async (req, res) => {
   });
 });
 
-// ===== LISTAR PARTICIPANTES =====
-app.get("/api/participants", async (req, res) => {
-  const list = await get(ParticipantDB, participants);
-  res.json(list);
-});
-
 // ===== START =====
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
-
