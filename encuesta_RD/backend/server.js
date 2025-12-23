@@ -1,10 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const { sendSurveyEmail } = require("./mailer"); // tu módulo de correo
+const { sendSurveyEmail } = require("./mailer");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000; // Puerto dinámico para Render
 
 // ===== MIDDLEWARE =====
 app.use(cors());
@@ -19,15 +19,19 @@ let votes = [];
 // ===== MONGODB =====
 let dbConnected = false;
 
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  "mongodb://127.0.0.1:27017/encuestaRD";
+
 mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/encuestaRD")
+  .connect(MONGO_URI)
   .then(() => {
     console.log("🟢 MongoDB conectado");
     dbConnected = true;
   })
   .catch(err => {
     console.log("🟡 MongoDB NO conectado → usando memoria");
-    console.error(err);
+    console.error(err.message);
   });
 
 // ===== ESQUEMAS =====
@@ -38,7 +42,7 @@ const ParticipantSchema = new mongoose.Schema({
   campo1: String,
   campo2: String,
   campo3: String,
-  hasVoted: Boolean,
+  hasVoted: { type: Boolean, default: false },
 });
 
 const PositionSchema = new mongoose.Schema({
@@ -71,12 +75,13 @@ const create = async (Model, mem, obj) =>
 const remove = async (Model, mem, filter) => {
   if (dbConnected) return await Model.deleteMany(filter);
   for (let i = mem.length - 1; i >= 0; i--) {
-    if (Object.keys(filter).every(k => mem[i][k] === filter[k])) mem.splice(i, 1);
+    if (Object.keys(filter).every(k => mem[i][k] === filter[k])) {
+      mem.splice(i, 1);
+    }
   }
 };
 
-// ================= PARTICIPANTES =================
-// Agregar participante
+// ===== PARTICIPANTES =====
 app.post("/api/participants", async (req, res) => {
   const { email, nombre, apellido, campo1, campo2, campo3 } = req.body;
   if (!email) return res.status(400).json({ error: "Correo requerido" });
@@ -97,38 +102,22 @@ app.post("/api/participants", async (req, res) => {
     hasVoted: false,
   };
 
-  await create(ParticipantDB, participants, participant);
-
   try {
-    await sendSurveyEmail(emailLower);
+    await create(ParticipantDB, participants, participant);
+
+    try {
+      await sendSurveyEmail(emailLower); // si falla, no rompe el POST
+    } catch (err) {
+      console.warn("⚠️ No se pudo enviar correo:", err.message);
+    }
+
+    res.json(participant);
   } catch (err) {
-    console.error("⚠️ No se pudo enviar correo:", err.message);
-  }
-
-  res.json(participant);
-});
-
-// Obtener todos los participantes
-app.get("/api/participants", async (req, res) => {
-  try {
-    const list = await get(ParticipantDB, participants);
-    res.json(list);
-  } catch {
-    res.status(500).json({ error: "No se pudo obtener participantes" });
+    res.status(500).json({ error: "Error guardando participante" });
   }
 });
 
-// Borrar participante
-app.delete("/api/participants/:email", async (req, res) => {
-  try {
-    await remove(ParticipantDB, participants, { email: req.params.email.toLowerCase() });
-    res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "No se pudo borrar participante" });
-  }
-});
-
-// ================= VALIDAR LINK =================
+// ===== VALIDAR LINK =====
 app.post("/api/validate", async (req, res) => {
   const { email } = req.body;
   const list = await get(ParticipantDB, participants);
@@ -138,11 +127,14 @@ app.post("/api/validate", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ================= POSITIONS =================
-app.get("/api/positions", async (req, res) => res.json(await get(PositionDB, positions)));
+// ===== POSITIONS =====
+app.get("/api/positions", async (req, res) => {
+  res.json(await get(PositionDB, positions));
+});
 
 app.post("/api/positions", async (req, res) => {
-  if (!req.body.nombre) return res.status(400).json({ error: "Nombre requerido" });
+  if (!req.body.nombre)
+    return res.status(400).json({ error: "Nombre requerido" });
 
   const position = {
     id: "pos-" + Date.now(),
@@ -160,8 +152,10 @@ app.delete("/api/positions/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ================= CANDIDATES =================
-app.get("/api/candidates", async (req, res) => res.json(await get(CandidateDB, candidates)));
+// ===== CANDIDATES =====
+app.get("/api/candidates", async (req, res) => {
+  res.json(await get(CandidateDB, candidates));
+});
 
 app.post("/api/candidates", async (req, res) => {
   if (!req.body.positionId || !req.body.nombre)
@@ -182,7 +176,7 @@ app.delete("/api/candidates/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// ================= VOTAR =================
+// ===== VOTE =====
 app.post("/api/vote", async (req, res) => {
   const { email, selections } = req.body;
   const list = await get(ParticipantDB, participants);
@@ -199,10 +193,14 @@ app.post("/api/vote", async (req, res) => {
     date: new Date().toISOString(),
   });
 
+  if (dbConnected) {
+    await ParticipantDB.updateOne({ email: email }, { hasVoted: true });
+  }
+
   res.json({ ok: true });
 });
 
-// ================= RESULTADOS =================
+// ===== RESULTS =====
 app.get("/api/results", async (req, res) => {
   res.json({
     participants: await get(ParticipantDB, participants),
@@ -212,14 +210,7 @@ app.get("/api/results", async (req, res) => {
   });
 });
 
-// ================= RESET (BORRAR TODO) =================
-app.post("/api/reset", async (req, res) => {
-  await remove(ParticipantDB, participants, {});
-  await remove(PositionDB, positions, {});
-  await remove(CandidateDB, candidates, {});
-  await remove(VoteDB, votes, {});
-  res.json({ ok: true });
+// ===== START SERVER =====
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
-
-// ================= START SERVER =================
-app.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));
