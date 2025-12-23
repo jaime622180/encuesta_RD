@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!tbody) return;
 
     if (participants.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7">No hay participantes registrados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8">No hay participantes registrados.</td></tr>`;
       return;
     }
 
@@ -107,14 +107,27 @@ document.addEventListener("DOMContentLoaded", async function () {
         <td>${p.campo2 || ""}</td>
         <td>${p.campo3 || ""}</td>
         <td>${p.hasVoted ? "Sí" : "No"}</td>
+        <td><button class="delete-btn" data-email="${p.email}">Eliminar</button></td>
       </tr>
     `).join("");
+
+    // ================= ELIMINAR PARTICIPANTE =================
+    document.querySelectorAll(".delete-btn").forEach(btn =>
+      btn.addEventListener("click", async () => {
+        const email = btn.dataset.email;
+        await fetch(`${API_BASE}/participants/${email}`, { method: "DELETE" });
+        await loadParticipants();
+        renderParticipantsTable();
+        updateSummaryCounts();
+      })
+    );
   }
 
   function updateSummaryCounts() {
-    document.getElementById("summary-total-participants").textContent = participants.length;
-    document.getElementById("summary-total-voted").textContent =
-      participants.filter(p => p.hasVoted).length;
+    const totalElem = document.getElementById("summary-total-participants");
+    const votedElem = document.getElementById("summary-total-voted");
+    if (totalElem) totalElem.textContent = participants.length;
+    if (votedElem) votedElem.textContent = participants.filter(p => p.hasVoted).length;
   }
 
   // ================= PARTICIPANTS FORM =================
